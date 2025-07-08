@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  password    String
+  role        UserRole
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdEvents     Event[]     @relation("EventCreator")
+  coordinatedEvents Event[]     @relation("EventCoordinator")
+  expenses          Expense[]
+  activityLogs      ActivityLog[]
+  budgetApprovals   BudgetApproval[]
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+model Event {
+  id              String      @id @default(uuid())
+  title           String
+  type            EventType
+  status          EventStatus @default(PENDING)
+  coordinatorEmail String?
+  description     String?
+  venueId         String?
+  dateTime        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  creatorId       String
+  creator         User        @relation("EventCreator", fields: [creatorId], references: [id])
+  coordinatorId   String?
+  coordinator     User?       @relation("EventCoordinator", fields: [coordinatorId], references: [id])
+  venue           Venue?      @relation(fields: [venueId], references: [id])
+  
+  budgets         Budget[]
+  expenses        Expense[]
+  budgetApprovals BudgetApproval[]
+
+  @@map("events")
+}
+
+model Venue {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  capacity    Int?
+  location    String?
+  facilities  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  events      Event[]
+
+  @@map("venues")
+}
+
+model BudgetCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  budgets     Budget[]
+  expenses    Expense[]
+  products    ProductCatalog[]
+
+  @@map("budget_categories")
+}
+
+model Budget {
+  id              String   @id @default(uuid())
+  amount          Float
+  sponsorAmount   Float    @default(0)
+  approvedAmount  Float?
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  eventId         String
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  categoryId      String
+  category        BudgetCategory  @relation(fields: [categoryId], references: [id])
+
+  @@unique([eventId, categoryId])
+  @@map("budgets")
+}
+
+model ProductCatalog {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  unitPrice   Float?
+  unit        String?
+  categoryId  String?
+  category    BudgetCategory? @relation(fields: [categoryId], references: [id])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  expenses    Expense[]
+
+  @@map("product_catalog")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  itemName    String
+  quantity    Float
+  amount      Float
+  unitPrice   Float
+  remarks     String?
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  eventId     String
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
+  addedById   String
+  addedBy     User            @relation(fields: [addedById], references: [id])
+  productId   String?
+  product     ProductCatalog? @relation(fields: [productId], references: [id])
+
+  @@map("expenses")
+}
+
+model BudgetApproval {
+  id          String           @id @default(uuid())
+  status      ApprovalStatus
+  remarks     String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  eventId     String
+  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User             @relation(fields: [reviewerId], references: [id])
+
+  @@map("budget_approvals")
+}
+
+model Notification {
+  id          String            @id @default(uuid())
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  action      String
+  entity      String
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
+
+enum UserRole {
+  ADMIN
+  EVENT_TEAM_LEAD
+  WORKSHOP_TEAM_LEAD
+  FINANCE_TEAM
+  FACILITIES_TEAM
+  EVENT_COORDINATOR
+  WORKSHOP_COORDINATOR
+}
+
+enum EventType {
+  EVENT
+  WORKSHOP
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum ApprovalStatus {
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
