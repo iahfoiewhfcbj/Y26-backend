@@ -96,6 +96,129 @@ export const emailTemplates = {
     `,
   }),
 
+  workshopCreated: (workshopTitle: string, creatorName: string, coordinatorName: string) => ({
+    subject: `New Workshop Created - Coordinator Assignment: ${workshopTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #059669; margin-bottom: 20px;">New Workshop Created</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear ${coordinatorName},</p>
+          <p style="color: #374151; margin-bottom: 15px;">You have been assigned as the coordinator for a new workshop:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Workshop:</strong> ${workshopTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Created by:</strong> ${creatorName}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view details and track the workshop progress.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/workshops" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Workshop</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Finance Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
+  workshopBudgetSubmitted: (workshopTitle: string, teamLeadName: string) => ({
+    subject: `Workshop Budget Submitted for Review: ${workshopTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #d97706; margin-bottom: 20px;">Workshop Budget Submitted for Review</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear Finance Team,</p>
+          <p style="color: #374151; margin-bottom: 15px;">A workshop budget has been submitted for review:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Workshop:</strong> ${workshopTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Submitted by:</strong> ${teamLeadName}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to review and approve the workshop budget.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/workshop-budgets" style="background-color: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Review Budget</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Finance Portal<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
+  workshopBudgetApproved: (workshopTitle: string, status: string, remarks: string) => ({
+    subject: `Workshop Budget ${status}: ${workshopTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: ${status === 'APPROVED' ? '#059669' : '#dc2626'}; margin-bottom: 20px;">Workshop Budget ${status}</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear Team,</p>
+          <p style="color: #374151; margin-bottom: 15px;">The budget for your workshop has been ${status.toLowerCase()}:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Workshop:</strong> ${workshopTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Status:</strong> ${status}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Remarks:</strong> ${remarks}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view the details and proceed accordingly.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/workshops" style="background-color: ${status === 'APPROVED' ? '#059669' : '#dc2626'}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Workshop</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Finance Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
+  workshopExpenseAdded: (workshopTitle: string, itemName: string, amount: number, addedBy: string) => ({
+    subject: `New Workshop Expense Added: ${workshopTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #7c3aed; margin-bottom: 20px;">New Workshop Expense Added</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear Workshop Coordinator,</p>
+          <p style="color: #374151; margin-bottom: 15px;">A new expense has been added to your workshop:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Workshop:</strong> ${workshopTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Item:</strong> ${itemName}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Amount:</strong> ₹${amount.toLocaleString()}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Added by:</strong> ${addedBy}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view the updated budget status.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/workshops" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Workshop</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Finance Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
   budgetSubmitted: (eventTitle: string, teamLeadName: string) => ({
     subject: `Budget Submitted for Review: ${eventTitle}`,
     html: `

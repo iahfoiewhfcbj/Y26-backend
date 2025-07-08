@@ -18,12 +18,16 @@ model User {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  createdEvents     Event[]     @relation("EventCreator")
-  coordinatedEvents Event[]     @relation("EventCoordinator")
-  expenses          Expense[]
-  activityLogs      ActivityLog[]
-  budgetApprovals   BudgetApproval[]
-  notifications     Notification[]
+  createdEvents         Event[]                    @relation("EventCreator")
+  coordinatedEvents     Event[]                    @relation("EventCoordinator")
+  createdWorkshops      Workshop[]                 @relation("WorkshopCreator")
+  coordinatedWorkshops  Workshop[]                 @relation("WorkshopCoordinator")
+  expenses              Expense[]
+  workshopExpenses      WorkshopExpense[]
+  activityLogs          ActivityLog[]
+  budgetApprovals       BudgetApproval[]
+  workshopBudgetApprovals WorkshopBudgetApproval[]
+  notifications         Notification[]
 
   @@map("users")
 }
@@ -31,7 +35,6 @@ model User {
 model Event {
   id              String      @id @default(uuid())
   title           String
-  type            EventType
   status          EventStatus @default(PENDING)
   coordinatorEmail String?
   description     String?
@@ -54,6 +57,31 @@ model Event {
   @@map("events")
 }
 
+model Workshop {
+  id              String        @id @default(uuid())
+  title           String
+  status          WorkshopStatus @default(PENDING)
+  coordinatorEmail String?
+  description     String?
+  venueId         String?
+  dateTime        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  creatorId       String
+  creator         User          @relation("WorkshopCreator", fields: [creatorId], references: [id])
+  coordinatorId   String?
+  coordinator     User?         @relation("WorkshopCoordinator", fields: [coordinatorId], references: [id])
+  venue           Venue?        @relation(fields: [venueId], references: [id])
+  
+  budgets         WorkshopBudget[]
+  expenses        WorkshopExpense[]
+  budgetApprovals WorkshopBudgetApproval[]
+
+  @@map("workshops")
+}
+
 model Venue {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -67,6 +95,7 @@ model Venue {
 
   // Relations
   events      Event[]
+  workshops   Workshop[]
 
   @@map("venues")
 }
@@ -81,9 +110,11 @@ model BudgetCategory {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  budgets     Budget[]
-  expenses    Expense[]
-  products    ProductCatalog[]
+  budgets         Budget[]
+  workshopBudgets WorkshopBudget[]
+  expenses        Expense[]
+  workshopExpenses WorkshopExpense[]
+  products        ProductCatalog[]
 
   @@map("budget_categories")
 }
@@ -107,6 +138,25 @@ model Budget {
   @@map("budgets")
 }
 
+model WorkshopBudget {
+  id              String   @id @default(uuid())
+  amount          Float
+  sponsorAmount   Float    @default(0)
+  approvedAmount  Float?
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  workshopId      String
+  workshop        Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  categoryId      String
+  category        BudgetCategory  @relation(fields: [categoryId], references: [id])
+
+  @@unique([workshopId, categoryId])
+  @@map("workshop_budgets")
+}
+
 model ProductCatalog {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -120,7 +170,8 @@ model ProductCatalog {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  expenses    Expense[]
+  expenses        Expense[]
+  workshopExpenses WorkshopExpense[]
 
   @@map("product_catalog")
 }
@@ -149,6 +200,30 @@ model Expense {
   @@map("expenses")
 }
 
+model WorkshopExpense {
+  id          String   @id @default(uuid())
+  itemName    String
+  quantity    Float
+  amount      Float
+  unitPrice   Float
+  remarks     String?
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workshopId  String
+  workshop    Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
+  addedById   String
+  addedBy     User            @relation(fields: [addedById], references: [id])
+  productId   String?
+  product     ProductCatalog? @relation(fields: [productId], references: [id])
+
+  @@map("workshop_expenses")
+}
+
 model BudgetApproval {
   id          String           @id @default(uuid())
   status      ApprovalStatus
@@ -163,6 +238,22 @@ model BudgetApproval {
   reviewer    User             @relation(fields: [reviewerId], references: [id])
 
   @@map("budget_approvals")
+}
+
+model WorkshopBudgetApproval {
+  id          String           @id @default(uuid())
+  status      ApprovalStatus
+  remarks     String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  workshopId  String
+  workshop    Workshop         @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User             @relation(fields: [reviewerId], references: [id])
+
+  @@map("workshop_budget_approvals")
 }
 
 model Notification {
@@ -209,12 +300,14 @@ enum UserRole {
   WORKSHOP_COORDINATOR
 }
 
-enum EventType {
-  EVENT
-  WORKSHOP
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
-enum EventStatus {
+enum WorkshopStatus {
   PENDING
   APPROVED
   REJECTED
