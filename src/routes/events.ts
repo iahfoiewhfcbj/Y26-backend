@@ -134,8 +134,6 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
 
     const { title, type, coordinatorEmail, description, venue, dateTime } = req.body;
 
-    const { title, coordinatorEmail, description, venue, dateTime } = req.body;
-
     // Find event coordinator by email if provided
     let coordinatorId = null;
     if (coordinatorEmail) {
@@ -151,6 +149,7 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
 
     const eventData = {
       title,
+      type, // Add the required 'type' property
       coordinatorEmail,
       description,
       venue,

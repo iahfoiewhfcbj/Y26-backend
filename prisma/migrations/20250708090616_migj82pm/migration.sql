@@ -2,10 +2,10 @@
 CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'EVENT_TEAM_LEAD', 'WORKSHOP_TEAM_LEAD', 'FINANCE_TEAM', 'FACILITIES_TEAM', 'EVENT_COORDINATOR', 'WORKSHOP_COORDINATOR');
 
 -- CreateEnum
-CREATE TYPE "EventType" AS ENUM ('EVENT', 'WORKSHOP');
+CREATE TYPE "EventStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED');
 
 -- CreateEnum
-CREATE TYPE "EventStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED');
+CREATE TYPE "WorkshopStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED');
 
 -- CreateEnum
 CREATE TYPE "ApprovalStatus" AS ENUM ('APPROVED', 'REJECTED');
@@ -31,7 +31,6 @@ CREATE TABLE "users" (
 CREATE TABLE "events" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "type" "EventType" NOT NULL,
     "status" "EventStatus" NOT NULL DEFAULT 'PENDING',
     "coordinatorEmail" TEXT,
     "description" TEXT,
@@ -43,6 +42,23 @@ CREATE TABLE "events" (
     "coordinatorId" TEXT,
 
     CONSTRAINT "events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "workshops" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "status" "WorkshopStatus" NOT NULL DEFAULT 'PENDING',
+    "coordinatorEmail" TEXT,
+    "description" TEXT,
+    "venueId" TEXT,
+    "dateTime" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "creatorId" TEXT NOT NULL,
+    "coordinatorId" TEXT,
+
+    CONSTRAINT "workshops_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -89,6 +105,21 @@ CREATE TABLE "budgets" (
 );
 
 -- CreateTable
+CREATE TABLE "workshop_budgets" (
+    "id" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "sponsorAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "approvedAmount" DOUBLE PRECISION,
+    "remarks" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "workshopId" TEXT NOT NULL,
+    "categoryId" TEXT NOT NULL,
+
+    CONSTRAINT "workshop_budgets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "product_catalog" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -123,6 +154,25 @@ CREATE TABLE "expenses" (
 );
 
 -- CreateTable
+CREATE TABLE "workshop_expenses" (
+    "id" TEXT NOT NULL,
+    "itemName" TEXT NOT NULL,
+    "quantity" DOUBLE PRECISION NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "unitPrice" DOUBLE PRECISION NOT NULL,
+    "remarks" TEXT,
+    "receiptUrl" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "workshopId" TEXT NOT NULL,
+    "categoryId" TEXT NOT NULL,
+    "addedById" TEXT NOT NULL,
+    "productId" TEXT,
+
+    CONSTRAINT "workshop_expenses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "budget_approvals" (
     "id" TEXT NOT NULL,
     "status" "ApprovalStatus" NOT NULL,
@@ -133,6 +183,19 @@ CREATE TABLE "budget_approvals" (
     "reviewerId" TEXT NOT NULL,
 
     CONSTRAINT "budget_approvals_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "workshop_budget_approvals" (
+    "id" TEXT NOT NULL,
+    "status" "ApprovalStatus" NOT NULL,
+    "remarks" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "workshopId" TEXT NOT NULL,
+    "reviewerId" TEXT NOT NULL,
+
+    CONSTRAINT "workshop_budget_approvals_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -178,6 +241,9 @@ CREATE UNIQUE INDEX "budget_categories_name_key" ON "budget_categories"("name");
 CREATE UNIQUE INDEX "budgets_eventId_categoryId_key" ON "budgets"("eventId", "categoryId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "workshop_budgets_workshopId_categoryId_key" ON "workshop_budgets"("workshopId", "categoryId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "product_catalog_name_key" ON "product_catalog"("name");
 
 -- AddForeignKey
@@ -190,10 +256,25 @@ ALTER TABLE "events" ADD CONSTRAINT "events_coordinatorId_fkey" FOREIGN KEY ("co
 ALTER TABLE "events" ADD CONSTRAINT "events_venueId_fkey" FOREIGN KEY ("venueId") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "workshops" ADD CONSTRAINT "workshops_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshops" ADD CONSTRAINT "workshops_coordinatorId_fkey" FOREIGN KEY ("coordinatorId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshops" ADD CONSTRAINT "workshops_venueId_fkey" FOREIGN KEY ("venueId") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "budgets" ADD CONSTRAINT "budgets_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "budgets" ADD CONSTRAINT "budgets_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "budget_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_budgets" ADD CONSTRAINT "workshop_budgets_workshopId_fkey" FOREIGN KEY ("workshopId") REFERENCES "workshops"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_budgets" ADD CONSTRAINT "workshop_budgets_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "budget_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product_catalog" ADD CONSTRAINT "product_catalog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "budget_categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -211,10 +292,28 @@ ALTER TABLE "expenses" ADD CONSTRAINT "expenses_addedById_fkey" FOREIGN KEY ("ad
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_productId_fkey" FOREIGN KEY ("productId") REFERENCES "product_catalog"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "workshop_expenses" ADD CONSTRAINT "workshop_expenses_workshopId_fkey" FOREIGN KEY ("workshopId") REFERENCES "workshops"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_expenses" ADD CONSTRAINT "workshop_expenses_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "budget_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_expenses" ADD CONSTRAINT "workshop_expenses_addedById_fkey" FOREIGN KEY ("addedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_expenses" ADD CONSTRAINT "workshop_expenses_productId_fkey" FOREIGN KEY ("productId") REFERENCES "product_catalog"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "budget_approvals" ADD CONSTRAINT "budget_approvals_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "budget_approvals" ADD CONSTRAINT "budget_approvals_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_budget_approvals" ADD CONSTRAINT "workshop_budget_approvals_workshopId_fkey" FOREIGN KEY ("workshopId") REFERENCES "workshops"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workshop_budget_approvals" ADD CONSTRAINT "workshop_budget_approvals_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
