@@ -109,7 +109,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
     if (expense.event.coordinator) {
       try {
         const emailContent = emailTemplates.expenseAdded(
-          expense.event.name,
+          expense.event.title,
           expense.itemName,
           expense.amount,
           expense.addedBy.name

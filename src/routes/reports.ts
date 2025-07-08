@@ -17,7 +17,11 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
         creator: {
           select: { id: true, name: true, email: true }
         },
@@ -52,7 +56,7 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
     const report = {
       event: {
         id: event.id,
-        name: event.name,
+        name: event.title,
         type: event.type,
         status: event.status,
         creator: event.creator,
@@ -110,7 +114,7 @@ router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE
 
     const summary = events.map(event => ({
       id: event.id,
-      name: event.name,
+      name: event.title,
       type: event.type,
       status: event.status,
       totalBudget: event.budgets.reduce((sum, budget) => sum + budget.amount, 0),
