@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole, WorkshopStatus, ApprovalStatus } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -8,7 +9,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get budgets for a workshop
-router.get('/workshop/:workshopId', authenticate, async (req, res) => {
+router.get('/workshop/:workshopId', authenticate, async (req: Request, res: Response) => {
   try {
     const { workshopId } = req.params;
 
@@ -39,7 +40,7 @@ router.post('/workshop/:workshopId', authenticate, authorize([UserRole.WORKSHOP_
   body('budgets.*.categoryId').isUUID(),
   body('budgets.*.amount').isFloat({ min: 0 }),
   body('budgets.*.sponsorAmount').optional().isFloat({ min: 0 }),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -128,7 +129,7 @@ router.post('/workshop/:workshopId/approve', authenticate, authorize([UserRole.F
   body('status').isIn(['APPROVED', 'REJECTED']),
   body('remarks').notEmpty().trim(),
   body('budgetAdjustments').optional().isArray(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

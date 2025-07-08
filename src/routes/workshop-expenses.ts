@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -8,7 +9,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get expenses for a workshop
-router.get('/workshop/:workshopId', authenticate, async (req, res) => {
+router.get('/workshop/:workshopId', authenticate, async (req: Request, res: Response) => {
   try {
     const { workshopId } = req.params;
 
@@ -31,7 +32,7 @@ router.get('/workshop/:workshopId', authenticate, async (req, res) => {
 });
 
 // Get expense summary for a workshop
-router.get('/workshop/:workshopId/summary', authenticate, async (req, res) => {
+router.get('/workshop/:workshopId/summary', authenticate, async (req: Request, res: Response) => {
   try {
     const { workshopId } = req.params;
 
@@ -74,7 +75,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
   body('amount').isFloat({ min: 0 }),
   body('remarks').optional().trim(),
   body('productId').optional().isUUID(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -136,7 +137,7 @@ router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.F
   body('unitPrice').optional().isFloat({ min: 0 }),
   body('amount').optional().isFloat({ min: 0 }),
   body('remarks').optional().trim(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -164,7 +165,7 @@ router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.F
 });
 
 // Delete workshop expense
-router.delete('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), async (req, res) => {
+router.delete('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole, WorkshopStatus } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -8,7 +9,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all workshops
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { role, userId } = req.user!;
     
@@ -60,7 +61,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Get workshop by ID
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { role, userId } = req.user!;
@@ -124,7 +125,7 @@ router.post('/', authenticate, authorize([UserRole.WORKSHOP_TEAM_LEAD, UserRole.
   body('description').optional().trim(),
   body('venue').optional().trim(),
   body('dateTime').optional().isISO8601(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -199,7 +200,7 @@ router.put('/:id', authenticate, [
   body('description').optional().trim(),
   body('venue').optional().trim(),
   body('dateTime').optional().isISO8601(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -268,7 +269,7 @@ router.put('/:id', authenticate, [
 });
 
 // Delete workshop
-router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req, res) => {
+router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

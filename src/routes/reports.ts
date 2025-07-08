@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 
 // Get event financial report
 router.get('/event/:eventId/financial', authenticate, async (req, res) => {
+}
+)
 router.get('/event/:eventId/financial', authenticate, async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
@@ -87,6 +89,8 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
 
 // Get overall financial summary
 router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req, res) => {
+}
+)
 router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req: Request, res: Response) => {
   try {
     const events = await prisma.event.findMany({
