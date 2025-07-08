@@ -1,23 +1,23 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { PrismaClient, UserRole, EventStatus, ApprovalStatus } from '@prisma/client';
+import { PrismaClient, UserRole, WorkshopStatus, ApprovalStatus } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
 import { sendEmail, emailTemplates } from '../utils/email';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get budgets for an event
-router.get('/event/:eventId', authenticate, async (req: Request, res: Response) => {
+// Get budgets for a workshop
+router.get('/workshop/:workshopId', authenticate, async (req: Request, res: Response) => {
   try {
-    const { eventId } = req.params;
+    const { workshopId } = req.params;
 
-    const budgets = await prisma.budget.findMany({
-      where: { eventId },
+    const budgets = await prisma.workshopBudget.findMany({
+      where: { workshopId },
       include: {
         category: true,
-        event: {
+        workshop: {
           include: {
             creator: {
               select: { id: true, name: true, email: true }
@@ -30,12 +30,12 @@ router.get('/event/:eventId', authenticate, async (req: Request, res: Response) 
 
     res.json(budgets);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch budgets' });
+    res.status(500).json({ error: 'Failed to fetch workshop budgets' });
   }
 });
 
-// Create or update budget
-router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+// Create or update workshop budget
+router.post('/workshop/:workshopId', authenticate, authorize([UserRole.WORKSHOP_TEAM_LEAD, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
   body('budgets').isArray(),
   body('budgets.*.categoryId').isUUID(),
   body('budgets.*.amount').isFloat({ min: 0 }),
@@ -47,12 +47,12 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { eventId } = req.params;
+    const { workshopId } = req.params;
     const { budgets } = req.body;
 
-    // Check if event exists
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    // Check if workshop exists
+    const workshop = await prisma.workshop.findUnique({
+      where: { id: workshopId },
       include: {
         creator: {
           select: { id: true, name: true, email: true }
@@ -63,16 +63,16 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
       }
     });
 
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+    if (!workshop) {
+      return res.status(404).json({ error: 'Workshop not found' });
     }
 
     // Create or update budgets
     const budgetPromises = budgets.map((budget: any) =>
-      prisma.budget.upsert({
+      prisma.workshopBudget.upsert({
         where: {
-          eventId_categoryId: {
-            eventId: eventId,
+          workshopId_categoryId: {
+            workshopId: workshopId,
             categoryId: budget.categoryId
           }
         },
@@ -82,7 +82,7 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
           remarks: budget.remarks
         },
         create: {
-          eventId: eventId,
+          workshopId: workshopId,
           categoryId: budget.categoryId,
           amount: budget.amount,
           sponsorAmount: budget.sponsorAmount || 0,
@@ -97,14 +97,14 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
     const updatedBudgets = await Promise.all(budgetPromises);
 
     // If submitted by team lead, send email to finance team
-    if (req.user!.role === UserRole.EVENT_TEAM_LEAD) {
+    if (req.user!.role === UserRole.WORKSHOP_TEAM_LEAD) {
       try {
         const financeTeamUsers = await prisma.user.findMany({
           where: { role: UserRole.FINANCE_TEAM, isActive: true },
           select: { email: true }
         });
 
-        const emailContent = emailTemplates.budgetSubmitted(event.title, event.creator.name);
+        const emailContent = emailTemplates.workshopBudgetSubmitted(workshop.title, workshop.creator.name);
         
         for (const user of financeTeamUsers) {
           await sendEmail({
@@ -114,18 +114,18 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
           });
         }
       } catch (emailError) {
-        console.error('Failed to send budget submitted email:', emailError);
+        console.error('Failed to send workshop budget submitted email:', emailError);
       }
     }
 
     res.json(updatedBudgets);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to save budgets' });
+    res.status(500).json({ error: 'Failed to save workshop budgets' });
   }
 });
 
-// Approve/Reject budget
-router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+// Approve/Reject workshop budget
+router.post('/workshop/:workshopId/approve', authenticate, authorize([UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
   body('status').isIn(['APPROVED', 'REJECTED']),
   body('remarks').notEmpty().trim(),
   body('budgetAdjustments').optional().isArray(),
@@ -136,11 +136,11 @@ router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { eventId } = req.params;
+    const { workshopId } = req.params;
     const { status, remarks, budgetAdjustments } = req.body;
 
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    const workshop = await prisma.workshop.findUnique({
+      where: { id: workshopId },
       include: {
         creator: {
           select: { id: true, name: true, email: true }
@@ -151,17 +151,17 @@ router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE
       }
     });
 
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+    if (!workshop) {
+      return res.status(404).json({ error: 'Workshop not found' });
     }
 
     // Apply budget adjustments if provided
     if (budgetAdjustments && budgetAdjustments.length > 0) {
       const adjustmentPromises = budgetAdjustments.map((adjustment: any) =>
-        prisma.budget.update({
+        prisma.workshopBudget.update({
           where: {
-            eventId_categoryId: {
-              eventId: eventId,
+            workshopId_categoryId: {
+              workshopId: workshopId,
               categoryId: adjustment.categoryId
             }
           },
@@ -175,9 +175,9 @@ router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE
     }
 
     // Create budget approval record
-    const approval = await prisma.budgetApproval.create({
+    const approval = await prisma.workshopBudgetApproval.create({
       data: {
-        eventId: eventId,
+        workshopId: workshopId,
         reviewerId: req.user!.userId,
         status: status as ApprovalStatus,
         remarks: remarks
@@ -189,19 +189,19 @@ router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE
       }
     });
 
-    // Update event status
-    await prisma.event.update({
-      where: { id: eventId },
-      data: { status: status === 'APPROVED' ? EventStatus.APPROVED : EventStatus.REJECTED }
+    // Update workshop status
+    await prisma.workshop.update({
+      where: { id: workshopId },
+      data: { status: status === 'APPROVED' ? WorkshopStatus.APPROVED : WorkshopStatus.REJECTED }
     });
 
-    // Send email to event creator and coordinator
+    // Send email to workshop creator and coordinator
     try {
-      const emailContent = emailTemplates.budgetApproved(event.title, status, remarks);
+      const emailContent = emailTemplates.workshopBudgetApproved(workshop.title, status, remarks);
       
-      const emailRecipients = [event.creator.email];
-      if (event.coordinator) {
-        emailRecipients.push(event.coordinator.email);
+      const emailRecipients = [workshop.creator.email];
+      if (workshop.coordinator) {
+        emailRecipients.push(workshop.coordinator.email);
       }
 
       for (const email of emailRecipients) {
@@ -212,12 +212,12 @@ router.post('/event/:eventId/approve', authenticate, authorize([UserRole.FINANCE
         });
       }
     } catch (emailError) {
-      console.error('Failed to send budget approval email:', emailError);
+      console.error('Failed to send workshop budget approval email:', emailError);
     }
 
     res.json(approval);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to approve/reject budget' });
+    res.status(500).json({ error: 'Failed to approve/reject workshop budget' });
   }
 });
 

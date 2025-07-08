@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
@@ -12,7 +13,7 @@ const prisma = new PrismaClient();
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -59,7 +60,7 @@ router.post('/login', [
 router.post('/change-password', authenticate, [
   body('currentPassword').notEmpty(),
   body('newPassword').isLength({ min: 6 }),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -97,7 +98,7 @@ router.post('/change-password', authenticate, [
 });
 
 // Get current user
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', authenticate, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },

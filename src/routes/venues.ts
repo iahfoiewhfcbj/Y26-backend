@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -7,7 +8,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all venues
-router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const venues = await prisma.venue.findMany({
       where: { isActive: true },
@@ -37,7 +38,7 @@ router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TE
   body('capacity').optional().isInt({ min: 1 }),
   body('location').optional().trim(),
   body('facilities').optional().trim(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -62,7 +63,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_
   body('location').optional().trim(),
   body('facilities').optional().trim(),
   body('isActive').optional().isBoolean(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -83,7 +84,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_
 });
 
 // Delete venue
-router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -100,7 +101,7 @@ router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITI
 });
 
 // Assign venue to event
-router.post('/:venueId/assign/:eventId', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.post('/:venueId/assign/:eventId', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const { venueId, eventId } = req.params;
 
@@ -125,7 +126,7 @@ router.post('/:venueId/assign/:eventId', authenticate, authorize([UserRole.ADMIN
 });
 
 // Get events for venue assignment
-router.get('/events-for-assignment', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.get('/events-for-assignment', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const events = await prisma.event.findMany({
       where: {

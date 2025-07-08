@@ -1,14 +1,14 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { PrismaClient, UserRole, EventStatus } from '@prisma/client';
+import { PrismaClient, UserRole, WorkshopStatus } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
 import { sendEmail, emailTemplates } from '../utils/email';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get all events
+// Get all workshops
 router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { role, userId } = req.user!;
@@ -16,13 +16,13 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     let whereClause: any = {};
     
     // Role-based filtering
-    if (role === UserRole.EVENT_TEAM_LEAD) {
+    if (role === UserRole.WORKSHOP_TEAM_LEAD) {
       whereClause.creatorId = userId;
-    } else if (role === UserRole.EVENT_COORDINATOR) {
+    } else if (role === UserRole.WORKSHOP_COORDINATOR) {
       whereClause.coordinatorId = userId;
     }
 
-    const events = await prisma.event.findMany({
+    const workshops = await prisma.workshop.findMany({
       where: whereClause,
       include: {
         creator: {
@@ -54,19 +54,19 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(events);
+    res.json(workshops);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch events' });
+    res.status(500).json({ error: 'Failed to fetch workshops' });
   }
 });
 
-// Get event by ID
+// Get workshop by ID
 router.get('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { role, userId } = req.user!;
 
-    const event = await prisma.event.findUnique({
+    const workshop = await prisma.workshop.findUnique({
       where: { id },
       include: {
         creator: {
@@ -100,26 +100,26 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
       }
     });
 
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+    if (!workshop) {
+      return res.status(404).json({ error: 'Workshop not found' });
     }
 
     // Check permissions
-    if (role === UserRole.EVENT_TEAM_LEAD && event.creatorId !== userId) {
+    if (role === UserRole.WORKSHOP_TEAM_LEAD && workshop.creatorId !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (role === UserRole.EVENT_COORDINATOR && event.coordinatorId !== userId) {
+    if (role === UserRole.WORKSHOP_COORDINATOR && workshop.coordinatorId !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json(event);
+    res.json(workshop);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch event' });
+    res.status(500).json({ error: 'Failed to fetch workshop' });
   }
 });
 
-// Create event
-router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADMIN]), [
+// Create workshop
+router.post('/', authenticate, authorize([UserRole.WORKSHOP_TEAM_LEAD, UserRole.ADMIN]), [
   body('title').notEmpty().trim(),
   body('coordinatorEmail').optional().isEmail(),
   body('description').optional().trim(),
@@ -132,24 +132,22 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { title, type, coordinatorEmail, description, venue, dateTime } = req.body;
-
     const { title, coordinatorEmail, description, venue, dateTime } = req.body;
 
-    // Find event coordinator by email if provided
+    // Find coordinator by email if provided
     let coordinatorId = null;
     if (coordinatorEmail) {
       const coordinator = await prisma.user.findUnique({
-        where: { email: coordinatorEmail, role: UserRole.EVENT_COORDINATOR, isActive: true }
+        where: { email: coordinatorEmail, role: UserRole.WORKSHOP_COORDINATOR, isActive: true }
       });
       
       if (!coordinator) {
-        return res.status(400).json({ error: 'Coordinator not found with the provided email' });
+        return res.status(400).json({ error: 'Workshop coordinator not found with the provided email' });
       }
       coordinatorId = coordinator.id;
     }
 
-    const eventData = {
+    const workshopData = {
       title,
       coordinatorEmail,
       description,
@@ -159,8 +157,8 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
       coordinatorId
     };
 
-    const event = await prisma.event.create({
-      data: eventData,
+    const workshop = await prisma.workshop.create({
+      data: workshopData,
       include: {
         creator: {
           select: { id: true, name: true, email: true }
@@ -172,30 +170,30 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
     });
 
     // Send email to coordinator if assigned
-    if (event.coordinator) {
+    if (workshop.coordinator) {
       try {
-        const emailContent = emailTemplates.eventCreated(
-          event.title,
-          event.creator.name,
-          event.coordinator.name
+        const emailContent = emailTemplates.workshopCreated(
+          workshop.title,
+          workshop.creator.name,
+          workshop.coordinator.name
         );
         await sendEmail({
-          to: event.coordinator.email,
+          to: workshop.coordinator.email,
           subject: emailContent.subject,
           html: emailContent.html
         });
       } catch (emailError) {
-        console.error('Failed to send event created email:', emailError);
+        console.error('Failed to send workshop created email:', emailError);
       }
     }
 
-    res.status(201).json(event);
+    res.status(201).json(workshop);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create event' });
+    res.status(500).json({ error: 'Failed to create workshop' });
   }
 });
 
-// Update event
+// Update workshop
 router.put('/:id', authenticate, [
   body('title').optional().notEmpty().trim(),
   body('coordinatorEmail').optional().isEmail(),
@@ -212,25 +210,25 @@ router.put('/:id', authenticate, [
     const { id } = req.params;
     const { role, userId } = req.user!;
 
-    const existingEvent = await prisma.event.findUnique({
+    const existingWorkshop = await prisma.workshop.findUnique({
       where: { id },
       select: { creatorId: true, status: true }
     });
 
-    if (!existingEvent) {
-      return res.status(404).json({ error: 'Event not found' });
+    if (!existingWorkshop) {
+      return res.status(404).json({ error: 'Workshop not found' });
     }
 
     // Check permissions
-    if (role === UserRole.EVENT_TEAM_LEAD && existingEvent.creatorId !== userId) {
+    if (role === UserRole.WORKSHOP_TEAM_LEAD && existingWorkshop.creatorId !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Event team leads can only edit if event is pending or rejected
-    if (role === UserRole.EVENT_TEAM_LEAD && 
-        existingEvent.status !== EventStatus.PENDING && 
-        existingEvent.status !== EventStatus.REJECTED) {
-      return res.status(400).json({ error: 'Cannot edit approved or completed events' });
+    // Workshop team leads can only edit if workshop is pending or rejected
+    if (role === UserRole.WORKSHOP_TEAM_LEAD && 
+        existingWorkshop.status !== WorkshopStatus.PENDING && 
+        existingWorkshop.status !== WorkshopStatus.REJECTED) {
+      return res.status(400).json({ error: 'Cannot edit approved or completed workshops' });
     }
 
     const updateData = { ...req.body };
@@ -238,11 +236,11 @@ router.put('/:id', authenticate, [
     // Handle coordinator email update
     if (req.body.coordinatorEmail) {
       const coordinator = await prisma.user.findUnique({
-        where: { email: req.body.coordinatorEmail, role: UserRole.EVENT_COORDINATOR, isActive: true }
+        where: { email: req.body.coordinatorEmail, role: UserRole.WORKSHOP_COORDINATOR, isActive: true }
       });
       
       if (!coordinator) {
-        return res.status(400).json({ error: 'Coordinator not found with the provided email' });
+        return res.status(400).json({ error: 'Workshop coordinator not found with the provided email' });
       }
       updateData.coordinatorId = coordinator.id;
     }
@@ -251,7 +249,7 @@ router.put('/:id', authenticate, [
       updateData.dateTime = new Date(req.body.dateTime);
     }
 
-    const event = await prisma.event.update({
+    const workshop = await prisma.workshop.update({
       where: { id },
       data: updateData,
       include: {
@@ -264,24 +262,24 @@ router.put('/:id', authenticate, [
       }
     });
 
-    res.json(event);
+    res.json(workshop);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update event' });
+    res.status(500).json({ error: 'Failed to update workshop' });
   }
 });
 
-// Delete event
+// Delete workshop
 router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    await prisma.event.delete({
+    await prisma.workshop.delete({
       where: { id }
     });
 
-    res.json({ message: 'Event deleted successfully' });
+    res.json({ message: 'Workshop deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete event' });
+    res.status(500).json({ error: 'Failed to delete workshop' });
   }
 });
 

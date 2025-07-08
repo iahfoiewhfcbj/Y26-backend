@@ -8,13 +8,13 @@ import { sendEmail, emailTemplates } from '../utils/email';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get expenses for an event
-router.get('/event/:eventId', authenticate, async (req: Request, res: Response) => {
+// Get expenses for a workshop
+router.get('/workshop/:workshopId', authenticate, async (req: Request, res: Response) => {
   try {
-    const { eventId } = req.params;
+    const { workshopId } = req.params;
 
-    const expenses = await prisma.expense.findMany({
-      where: { eventId },
+    const expenses = await prisma.workshopExpense.findMany({
+      where: { workshopId },
       include: {
         category: true,
         addedBy: {
@@ -27,22 +27,22 @@ router.get('/event/:eventId', authenticate, async (req: Request, res: Response) 
 
     res.json(expenses);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch expenses' });
+    res.status(500).json({ error: 'Failed to fetch workshop expenses' });
   }
 });
 
-// Get expense summary for an event
-router.get('/event/:eventId/summary', authenticate, async (req: Request, res: Response) => {
+// Get expense summary for a workshop
+router.get('/workshop/:workshopId/summary', authenticate, async (req: Request, res: Response) => {
   try {
-    const { eventId } = req.params;
+    const { workshopId } = req.params;
 
-    const budgets = await prisma.budget.findMany({
-      where: { eventId },
+    const budgets = await prisma.workshopBudget.findMany({
+      where: { workshopId },
       include: { category: true }
     });
 
-    const expenses = await prisma.expense.findMany({
-      where: { eventId },
+    const expenses = await prisma.workshopExpense.findMany({
+      where: { workshopId },
       include: { category: true }
     });
 
@@ -61,13 +61,13 @@ router.get('/event/:eventId/summary', authenticate, async (req: Request, res: Re
 
     res.json(summary);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch expense summary' });
+    res.status(500).json({ error: 'Failed to fetch workshop expense summary' });
   }
 });
 
-// Create expense
+// Create workshop expense
 router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
-  body('eventId').isUUID(),
+  body('workshopId').isUUID(),
   body('categoryId').isUUID(),
   body('itemName').notEmpty().trim(),
   body('quantity').isFloat({ min: 0 }),
@@ -87,7 +87,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
       addedById: req.user!.userId
     };
 
-    const expense = await prisma.expense.create({
+    const expense = await prisma.workshopExpense.create({
       data: expenseData,
       include: {
         category: true,
@@ -95,7 +95,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
           select: { id: true, name: true, email: true }
         },
         product: true,
-        event: {
+        workshop: {
           include: {
             coordinator: {
               select: { id: true, name: true, email: true }
@@ -105,32 +105,32 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
       }
     });
 
-    // Send email to event coordinator
-    if (expense.event.coordinator) {
+    // Send email to workshop coordinator
+    if (expense.workshop.coordinator) {
       try {
-        const emailContent = emailTemplates.expenseAdded(
-          expense.event.name,
+        const emailContent = emailTemplates.workshopExpenseAdded(
+          expense.workshop.title,
           expense.itemName,
           expense.amount,
           expense.addedBy.name
         );
         await sendEmail({
-          to: expense.event.coordinator.email,
+          to: expense.workshop.coordinator.email,
           subject: emailContent.subject,
           html: emailContent.html
         });
       } catch (emailError) {
-        console.error('Failed to send expense added email:', emailError);
+        console.error('Failed to send workshop expense added email:', emailError);
       }
     }
 
     res.status(201).json(expense);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create expense' });
+    res.status(500).json({ error: 'Failed to create workshop expense' });
   }
 });
 
-// Update expense
+// Update workshop expense
 router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
   body('itemName').optional().notEmpty().trim(),
   body('quantity').optional().isFloat({ min: 0 }),
@@ -146,7 +146,7 @@ router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.F
 
     const { id } = req.params;
 
-    const expense = await prisma.expense.update({
+    const expense = await prisma.workshopExpense.update({
       where: { id },
       data: req.body,
       include: {
@@ -160,22 +160,22 @@ router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.F
 
     res.json(expense);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update expense' });
+    res.status(500).json({ error: 'Failed to update workshop expense' });
   }
 });
 
-// Delete expense
+// Delete workshop expense
 router.delete('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    await prisma.expense.delete({
+    await prisma.workshopExpense.delete({
       where: { id }
     });
 
-    res.json({ message: 'Expense deleted successfully' });
+    res.json({ message: 'Workshop expense deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete expense' });
+    res.status(500).json({ error: 'Failed to delete workshop expense' });
   }
 });
 

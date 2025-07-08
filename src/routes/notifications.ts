@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, NotificationType, UserRole } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -7,7 +8,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get user notifications
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 20, unreadOnly = false } = req.query;
     
@@ -49,8 +50,8 @@ router.post('/', authenticate, authorize([UserRole.ADMIN]), [
   body('message').notEmpty().trim(),
   body('type').isIn(['INFO', 'SUCCESS', 'WARNING', 'ERROR']),
   body('targetRole').optional().isIn(Object.values(UserRole)),
-  body('sendToAll').optional().isBoolean(),
-], async (req, res) => {
+  body('sendToAll').optional().isBoolean()
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -92,7 +93,7 @@ router.post('/', authenticate, authorize([UserRole.ADMIN]), [
 });
 
 // Mark notification as read
-router.patch('/:id/read', authenticate, async (req, res) => {
+router.patch('/:id/read', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -111,7 +112,7 @@ router.patch('/:id/read', authenticate, async (req, res) => {
 });
 
 // Mark all notifications as read
-router.patch('/mark-all-read', authenticate, async (req, res) => {
+router.patch('/mark-all-read', authenticate, async (req: Request, res: Response) => {
   try {
     await prisma.notification.updateMany({
       where: { 

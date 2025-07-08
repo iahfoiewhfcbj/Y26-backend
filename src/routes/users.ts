@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole } from '@prisma/client';
@@ -9,7 +10,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all users (Admin only)
-router.get('/', authenticate, authorize([UserRole.ADMIN]), async (req, res) => {
+router.get('/', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -35,7 +36,7 @@ router.post('/', authenticate, authorize([UserRole.ADMIN]), [
   body('email').isEmail().normalizeEmail(),
   body('name').notEmpty().trim(),
   body('role').isIn(Object.values(UserRole)),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -99,7 +100,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN]), [
   body('name').optional().notEmpty().trim(),
   body('role').optional().isIn(Object.values(UserRole)),
   body('isActive').optional().isBoolean(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -129,7 +130,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN]), [
 });
 
 // Delete user (Admin only)
-router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req, res) => {
+router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

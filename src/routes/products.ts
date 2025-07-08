@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
@@ -7,7 +8,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all products
-router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const products = await prisma.productCatalog.findMany({
       where: { isActive: true },
@@ -30,7 +31,7 @@ router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM,
   body('unitPrice').optional().isFloat({ min: 0 }),
   body('unit').optional().trim(),
   body('categoryId').optional().isUUID(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -58,7 +59,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEA
   body('unit').optional().trim(),
   body('categoryId').optional().isUUID(),
   body('isActive').optional().isBoolean(),
-], async (req, res) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -82,7 +83,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEA
 });
 
 // Delete product
-router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), async (req, res) => {
+router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
