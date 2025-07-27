@@ -272,13 +272,61 @@ router.put('/:id', authenticate, [
 router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { userId } = req.user!;
 
+    // First, check if the workshop exists and get its details for logging
+    const workshop = await prisma.workshop.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            budgets: true,
+            expenses: true,
+            budgetApprovals: true
+          }
+        }
+      }
+    });
+
+    if (!workshop) {
+      return res.status(404).json({ error: 'Workshop not found' });
+    }
+
+    // Log the deletion action before deleting
+    await prisma.activityLog.create({
+      data: {
+        action: 'DELETE_WORKSHOP',
+        entity: 'Workshop',
+        entityId: id,
+        oldValues: {
+          title: workshop.title,
+          status: workshop.status,
+          budgetsCount: workshop._count.budgets,
+          expensesCount: workshop._count.expenses,
+          approvalsCount: workshop._count.budgetApprovals
+        },
+        userId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      }
+    });
+
+    // Delete the workshop (this will cascade delete all related records)
     await prisma.workshop.delete({
       where: { id }
     });
 
-    res.json({ message: 'Workshop deleted successfully' });
+    res.json({ 
+      message: 'Workshop deleted successfully',
+      deletedRecords: {
+        workshop: 1,
+        budgets: workshop._count.budgets,
+        expenses: workshop._count.expenses,
+        budgetApprovals: workshop._count.budgetApprovals
+      }
+    });
   } catch (error) {
+    console.error('Error deleting workshop:', error);
     res.status(500).json({ error: 'Failed to delete workshop' });
   }
 });

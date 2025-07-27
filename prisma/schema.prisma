@@ -8,92 +8,83 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  name        String
-  password    String
-  role        UserRole
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  createdEvents         Event[]                    @relation("EventCreator")
-  coordinatedEvents     Event[]                    @relation("EventCoordinator")
-  createdWorkshops      Workshop[]                 @relation("WorkshopCreator")
-  coordinatedWorkshops  Workshop[]                 @relation("WorkshopCoordinator")
-  expenses              Expense[]
-  workshopExpenses      WorkshopExpense[]
-  activityLogs          ActivityLog[]
-  budgetApprovals       BudgetApproval[]
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  name                    String
+  password                String
+  role                    UserRole
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  activityLogs            ActivityLog[]
+  budgetApprovals         BudgetApproval[]
+  coordinatedEvents       Event[]                  @relation("EventCoordinator")
+  createdEvents           Event[]                  @relation("EventCreator")
+  expenses                Expense[]
+  notifications           Notification[]
   workshopBudgetApprovals WorkshopBudgetApproval[]
-  notifications         Notification[]
+  workshopExpenses        WorkshopExpense[]
+  coordinatedWorkshops    Workshop[]               @relation("WorkshopCoordinator")
+  createdWorkshops        Workshop[]               @relation("WorkshopCreator")
 
   @@map("users")
 }
 
 model Event {
-  id              String      @id @default(uuid())
-  title           String
-  status          EventStatus @default(PENDING)
+  id               String           @id @default(uuid())
+  title            String
+  status           EventStatus      @default(PENDING)
   coordinatorEmail String?
-  description     String?
-  venueId         String?
-  dateTime        DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  // Relations
-  creatorId       String
-  creator         User        @relation("EventCreator", fields: [creatorId], references: [id])
-  coordinatorId   String?
-  coordinator     User?       @relation("EventCoordinator", fields: [coordinatorId], references: [id])
-  venue           Venue?      @relation(fields: [venueId], references: [id])
-  
-  budgets         Budget[]
-  expenses        Expense[]
-  budgetApprovals BudgetApproval[]
+  description      String?
+  venueId          String?
+  dateTime         DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  creatorId        String
+  coordinatorId    String?
+  type             String           @default("EVENT")
+  budgetApprovals  BudgetApproval[]
+  budgets          Budget[]
+  coordinator      User?            @relation("EventCoordinator", fields: [coordinatorId], references: [id])
+  creator          User             @relation("EventCreator", fields: [creatorId], references: [id])
+  venue            Venue?           @relation(fields: [venueId], references: [id])
+  expenses         Expense[]
 
   @@map("events")
 }
 
 model Workshop {
-  id              String        @id @default(uuid())
-  title           String
-  status          WorkshopStatus @default(PENDING)
+  id               String                   @id @default(uuid())
+  title            String
+  status           WorkshopStatus           @default(PENDING)
   coordinatorEmail String?
-  description     String?
-  venueId         String?
-  dateTime        DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  creatorId       String
-  creator         User          @relation("WorkshopCreator", fields: [creatorId], references: [id])
-  coordinatorId   String?
-  coordinator     User?         @relation("WorkshopCoordinator", fields: [coordinatorId], references: [id])
-  venue           Venue?        @relation(fields: [venueId], references: [id])
-  
-  budgets         WorkshopBudget[]
-  expenses        WorkshopExpense[]
-  budgetApprovals WorkshopBudgetApproval[]
+  description      String?
+  venueId          String?
+  dateTime         DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  creatorId        String
+  coordinatorId    String?
+  budgetApprovals  WorkshopBudgetApproval[]
+  budgets          WorkshopBudget[]
+  expenses         WorkshopExpense[]
+  coordinator      User?                    @relation("WorkshopCoordinator", fields: [coordinatorId], references: [id])
+  creator          User                     @relation("WorkshopCreator", fields: [creatorId], references: [id])
+  venue            Venue?                   @relation(fields: [venueId], references: [id])
 
   @@map("workshops")
 }
 
 model Venue {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String     @id @default(uuid())
+  name        String     @unique
   description String?
   capacity    Int?
   location    String?
   facilities  String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   events      Event[]
   workshops   Workshop[]
 
@@ -101,191 +92,171 @@ model Venue {
 }
 
 model BudgetCategory {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  budgets         Budget[]
-  workshopBudgets WorkshopBudget[]
-  expenses        Expense[]
+  id               String            @id @default(uuid())
+  name             String            @unique
+  description      String?
+  order            Int               @default(0)
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  budgets          Budget[]
+  expenses         Expense[]
+  products         ProductCatalog[]
+  workshopBudgets  WorkshopBudget[]
   workshopExpenses WorkshopExpense[]
-  products        ProductCatalog[]
 
   @@map("budget_categories")
 }
 
 model Budget {
-  id              String   @id @default(uuid())
-  amount          Float
-  sponsorAmount   Float    @default(0)
-  approvedAmount  Float?
-  remarks         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  eventId         String
-  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  categoryId      String
-  category        BudgetCategory  @relation(fields: [categoryId], references: [id])
+  id             String         @id @default(uuid())
+  amount         Float
+  sponsorAmount  Float          @default(0)
+  approvedAmount Float?
+  remarks        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  eventId        String
+  categoryId     String
+  category       BudgetCategory @relation(fields: [categoryId], references: [id])
+  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, categoryId])
   @@map("budgets")
 }
 
 model WorkshopBudget {
-  id              String   @id @default(uuid())
-  amount          Float
-  sponsorAmount   Float    @default(0)
-  approvedAmount  Float?
-  remarks         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  workshopId      String
-  workshop        Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  categoryId      String
-  category        BudgetCategory  @relation(fields: [categoryId], references: [id])
+  id             String         @id @default(uuid())
+  amount         Float
+  sponsorAmount  Float          @default(0)
+  approvedAmount Float?
+  remarks        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  workshopId     String
+  categoryId     String
+  category       BudgetCategory @relation(fields: [categoryId], references: [id])
+  workshop       Workshop       @relation(fields: [workshopId], references: [id], onDelete: Cascade)
 
   @@unique([workshopId, categoryId])
   @@map("workshop_budgets")
 }
 
 model ProductCatalog {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  unitPrice   Float?
-  unit        String?
-  categoryId  String?
-  category    BudgetCategory? @relation(fields: [categoryId], references: [id])
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  expenses        Expense[]
+  id               String            @id @default(uuid())
+  name             String            @unique
+  description      String?
+  unitPrice        Float?
+  unit             String?
+  categoryId       String?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  expenses         Expense[]
+  category         BudgetCategory?   @relation(fields: [categoryId], references: [id])
   workshopExpenses WorkshopExpense[]
 
   @@map("product_catalog")
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  itemName    String
-  quantity    Float
-  amount      Float
-  unitPrice   Float
-  remarks     String?
-  receiptUrl  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  eventId     String
-  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  categoryId  String
-  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
-  addedById   String
-  addedBy     User            @relation(fields: [addedById], references: [id])
-  productId   String?
-  product     ProductCatalog? @relation(fields: [productId], references: [id])
+  id         String          @id @default(uuid())
+  itemName   String
+  quantity   Float
+  amount     Float
+  unitPrice  Float
+  remarks    String?
+  receiptUrl String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  eventId    String
+  categoryId String
+  addedById  String
+  productId  String?
+  addedBy    User            @relation(fields: [addedById], references: [id])
+  category   BudgetCategory  @relation(fields: [categoryId], references: [id])
+  event      Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  product    ProductCatalog? @relation(fields: [productId], references: [id])
 
   @@map("expenses")
 }
 
 model WorkshopExpense {
-  id          String   @id @default(uuid())
-  itemName    String
-  quantity    Float
-  amount      Float
-  unitPrice   Float
-  remarks     String?
-  receiptUrl  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  workshopId  String
-  workshop    Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  categoryId  String
-  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
-  addedById   String
-  addedBy     User            @relation(fields: [addedById], references: [id])
-  productId   String?
-  product     ProductCatalog? @relation(fields: [productId], references: [id])
+  id         String          @id @default(uuid())
+  itemName   String
+  quantity   Float
+  amount     Float
+  unitPrice  Float
+  remarks    String?
+  receiptUrl String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  workshopId String
+  categoryId String
+  addedById  String
+  productId  String?
+  addedBy    User            @relation(fields: [addedById], references: [id])
+  category   BudgetCategory  @relation(fields: [categoryId], references: [id])
+  product    ProductCatalog? @relation(fields: [productId], references: [id])
+  workshop   Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
 
   @@map("workshop_expenses")
 }
 
 model BudgetApproval {
-  id          String           @id @default(uuid())
-  status      ApprovalStatus
-  remarks     String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  eventId     String
-  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  reviewerId  String
-  reviewer    User             @relation(fields: [reviewerId], references: [id])
+  id         String         @id @default(uuid())
+  status     ApprovalStatus
+  remarks    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  eventId    String
+  reviewerId String
+  event      Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reviewer   User           @relation(fields: [reviewerId], references: [id])
 
   @@map("budget_approvals")
 }
 
 model WorkshopBudgetApproval {
-  id          String           @id @default(uuid())
-  status      ApprovalStatus
-  remarks     String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  workshopId  String
-  workshop    Workshop         @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  reviewerId  String
-  reviewer    User             @relation(fields: [reviewerId], references: [id])
+  id         String         @id @default(uuid())
+  status     ApprovalStatus
+  remarks    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  workshopId String
+  reviewerId String
+  reviewer   User           @relation(fields: [reviewerId], references: [id])
+  workshop   Workshop       @relation(fields: [workshopId], references: [id], onDelete: Cascade)
 
   @@map("workshop_budget_approvals")
 }
 
 model Notification {
-  id          String            @id @default(uuid())
-  title       String
-  message     String
-  type        NotificationType
-  isRead      Boolean           @default(false)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
+  id        String           @id @default(uuid())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
 
 model ActivityLog {
-  id          String   @id @default(uuid())
-  action      String
-  entity      String
-  entityId    String?
-  oldValues   Json?
-  newValues   Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@map("activity_logs")
 }

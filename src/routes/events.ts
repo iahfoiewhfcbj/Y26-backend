@@ -273,13 +273,61 @@ router.put('/:id', authenticate, [
 router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { userId } = req.user!;
 
+    // First, check if the event exists and get its details for logging
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            budgets: true,
+            expenses: true,
+            budgetApprovals: true
+          }
+        }
+      }
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // Log the deletion action before deleting
+    await prisma.activityLog.create({
+      data: {
+        action: 'DELETE_EVENT',
+        entity: 'Event',
+        entityId: id,
+        oldValues: {
+          title: event.title,
+          status: event.status,
+          budgetsCount: event._count.budgets,
+          expensesCount: event._count.expenses,
+          approvalsCount: event._count.budgetApprovals
+        },
+        userId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      }
+    });
+
+    // Delete the event (this will cascade delete all related records)
     await prisma.event.delete({
       where: { id }
     });
 
-    res.json({ message: 'Event deleted successfully' });
+    res.json({ 
+      message: 'Event deleted successfully',
+      deletedRecords: {
+        event: 1,
+        budgets: event._count.budgets,
+        expenses: event._count.expenses,
+        budgetApprovals: event._count.budgetApprovals
+      }
+    });
   } catch (error) {
+    console.error('Error deleting event:', error);
     res.status(500).json({ error: 'Failed to delete event' });
   }
 });

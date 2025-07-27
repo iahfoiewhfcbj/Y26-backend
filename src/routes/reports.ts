@@ -7,9 +7,6 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get event financial report
-router.get('/event/:eventId/financial', authenticate, async (req, res) => {
-}
-)
 router.get('/event/:eventId/financial', authenticate, async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
@@ -17,11 +14,7 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      select: {
-        id: true,
-        title: true,
-        type: true,
-        status: true,
+      include: {
         creator: {
           select: { id: true, name: true, email: true }
         },
@@ -57,7 +50,7 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
       event: {
         id: event.id,
         name: event.title,
-        type: event.type,
+        type: (event as any).type,
         status: event.status,
         creator: event.creator,
         coordinator: event.coordinator
@@ -66,7 +59,7 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
         category: budget.category.name,
         budgetAmount: budget.amount,
         approvedAmount: budget.approvedAmount,
-        sponsorContribution: budget.sponsorContribution
+        sponsorAmount: budget.sponsorAmount
       })),
       expenses: event.expenses.map(expense => ({
         itemName: expense.itemName,
@@ -81,7 +74,7 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
         totalBudget: event.budgets.reduce((sum, budget) => sum + budget.amount, 0),
         totalApprovedBudget: event.budgets.reduce((sum, budget) => sum + (budget.approvedAmount || budget.amount), 0),
         totalExpenses: event.expenses.reduce((sum, expense) => sum + expense.amount, 0),
-        totalSponsorContribution: event.budgets.reduce((sum, budget) => sum + budget.sponsorContribution, 0)
+        totalSponsorAmount: event.budgets.reduce((sum, budget) => sum + budget.sponsorAmount, 0)
       }
     };
 
@@ -92,9 +85,6 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
 });
 
 // Get overall financial summary
-router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req, res) => {
-}
-)
 router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req: Request, res: Response) => {
   try {
     const events = await prisma.event.findMany({
@@ -115,12 +105,12 @@ router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE
     const summary = events.map(event => ({
       id: event.id,
       name: event.title,
-      type: event.type,
+      type: (event as any).type,
       status: event.status,
       totalBudget: event.budgets.reduce((sum, budget) => sum + budget.amount, 0),
       totalApprovedBudget: event.budgets.reduce((sum, budget) => sum + (budget.approvedAmount || budget.amount), 0),
       totalExpenses: event.expenses.reduce((sum, expense) => sum + expense.amount, 0),
-      totalSponsorContribution: event.budgets.reduce((sum, budget) => sum + budget.sponsorContribution, 0)
+      totalSponsorAmount: event.budgets.reduce((sum, budget) => sum + budget.sponsorAmount, 0)
     }));
 
     res.json(summary);
