@@ -23,6 +23,7 @@ import adminRoutes from './routes/admin';
 import reportRoutes from './routes/reports';
 import notificationRoutes from './routes/notifications';
 import venueRoutes from './routes/venues';
+import uploadRoutes from './routes/uploads';
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/venues', venueRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

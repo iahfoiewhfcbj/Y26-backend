@@ -124,7 +124,10 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
   body('coordinatorEmail').optional().isEmail(),
   body('description').optional().trim(),
   body('venue').optional().trim(),
-  body('dateTime').optional().isISO8601(),
+  body('startDate').optional().isISO8601(),
+  body('startTime').optional().isString(),
+  body('endDate').optional().isISO8601(),
+  body('endTime').optional().isString(),
 ], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -132,7 +135,7 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { title, type, coordinatorEmail, description, venue, dateTime } = req.body;
+    const { title, type, coordinatorEmail, description, venue, startDate, startTime, endDate, endTime } = req.body;
 
     // Find event coordinator by email if provided
     let coordinatorId = null;
@@ -153,7 +156,10 @@ router.post('/', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.ADM
       coordinatorEmail,
       description,
       venue,
-      dateTime: dateTime ? new Date(dateTime) : null,
+      startDate: startDate ? new Date(startDate) : null,
+      startTime: startTime || null,
+      endDate: endDate ? new Date(endDate) : null,
+      endTime: endTime || null,
       creatorId: req.user!.userId,
       coordinatorId
     };
@@ -233,7 +239,26 @@ router.put('/:id', authenticate, [
     }
 
     const updateData = { ...req.body };
-    
+
+    // Only allow fields that exist in the Event model
+    const allowedFields = [
+      'title', 'type', 'coordinatorEmail', 'description', 'venue',
+      'startDate', 'startTime', 'endDate', 'endTime', 'venueId'
+    ];
+    Object.keys(updateData).forEach(key => {
+      if (!allowedFields.includes(key)) {
+        delete updateData[key];
+      }
+    });
+
+    // Convert dates to Date objects if present
+    if (updateData.startDate) {
+      updateData.startDate = new Date(updateData.startDate);
+    }
+    if (updateData.endDate) {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+
     // Handle coordinator email update
     if (req.body.coordinatorEmail) {
       const coordinator = await prisma.user.findUnique({
@@ -244,10 +269,6 @@ router.put('/:id', authenticate, [
         return res.status(400).json({ error: 'Coordinator not found with the provided email' });
       }
       updateData.coordinatorId = coordinator.id;
-    }
-
-    if (req.body.dateTime) {
-      updateData.dateTime = new Date(req.body.dateTime);
     }
 
     const event = await prisma.event.update({
@@ -265,6 +286,7 @@ router.put('/:id', authenticate, [
 
     res.json(event);
   } catch (error) {
+    console.error('Error updating event:', error);
     res.status(500).json({ error: 'Failed to update event' });
   }
 });
@@ -329,6 +351,183 @@ router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Req
   } catch (error) {
     console.error('Error deleting event:', error);
     res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// Assign venue to event
+router.post('/:id/assign-venue', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { venueId } = req.body;
+    const { userId } = req.user!;
+
+    // Validate venue ID
+    if (!venueId) {
+      return res.status(400).json({ error: 'Venue ID is required' });
+    }
+
+    // Check if event exists and is approved
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+      },
+    }) as any;
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // Check if event is approved (has approved budget)
+    if (event.status !== 'APPROVED') {
+      return res.status(400).json({ error: 'Venue can only be assigned to approved events' });
+    }
+
+    // Check if venue exists
+    const venue = await prisma.venue.findUnique({
+      where: { id: venueId }
+    });
+
+    if (!venue) {
+      return res.status(404).json({ error: 'Venue not found' });
+    }
+
+    // Check for venue conflicts with other events
+    if (event.startDate && event.endDate) {
+      const conflictingEvents = await prisma.event.findMany({
+        where: ({
+          venueId: venueId,
+          id: { not: id },
+          status: { in: ['APPROVED', 'PENDING'] },
+          AND: [
+            {
+              OR: [
+                {
+                  AND: [
+                    { startDate: { lte: event.startDate } },
+                    { endDate: { gte: event.startDate } }
+                  ]
+                },
+                {
+                  AND: [
+                    { startDate: { lte: event.endDate } },
+                    { endDate: { gte: event.endDate } }
+                  ]
+                },
+                {
+                  AND: [
+                    { startDate: { gte: event.startDate } },
+                    { endDate: { lte: event.endDate } }
+                  ]
+                }
+              ]
+            }
+          ]
+        } as any),
+        include: {
+          creator: { select: { name: true } },
+        },
+      }) as any[];
+
+      if (conflictingEvents.length > 0) {
+        const conflictDetails = conflictingEvents.map(e => ({
+          title: e.title,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          creator: e.creator?.name || '',
+        }));
+        return res.status(409).json({ 
+          error: 'Venue conflict detected',
+          message: 'This venue is already assigned to another event during the specified time period',
+          conflicts: conflictDetails
+        });
+      }
+    }
+
+    // Check for venue conflicts with workshops
+    if (event.startDate && event.endDate) {
+      const conflictingWorkshops = await prisma.workshop.findMany({
+        where: ({
+          venueId: venueId,
+          status: { in: ['APPROVED', 'PENDING'] },
+          AND: [
+            {
+              OR: [
+                {
+                  AND: [
+                    { startDate: { lte: event.startDate } },
+                    { endDate: { gte: event.startDate } }
+                  ]
+                },
+                {
+                  AND: [
+                    { startDate: { lte: event.endDate } },
+                    { endDate: { gte: event.endDate } }
+                  ]
+                },
+                {
+                  AND: [
+                    { startDate: { gte: event.startDate } },
+                    { endDate: { lte: event.endDate } }
+                  ]
+                }
+              ]
+            }
+          ]
+        } as any),
+        include: {
+          creator: { select: { name: true } },
+        },
+      }) as any[];
+
+      if (conflictingWorkshops.length > 0) {
+        const conflictDetails = conflictingWorkshops.map(w => ({
+          title: w.title,
+          startDate: w.startDate,
+          endDate: w.endDate,
+          creator: w.creator?.name || '',
+        }));
+        return res.status(409).json({ 
+          error: 'Venue conflict detected',
+          message: 'This venue is already assigned to another workshop during the specified time period',
+          conflicts: conflictDetails
+        });
+      }
+    }
+
+    // Update event with venue
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: { venueId },
+      include: {
+        creator: {
+          select: { id: true, name: true, email: true }
+        },
+        coordinator: {
+          select: { id: true, name: true, email: true }
+        },
+        venue: true
+      }
+    });
+
+    // Log the venue assignment
+    await prisma.activityLog.create({
+      data: {
+        action: 'ASSIGN_VENUE',
+        entity: 'Event',
+        entityId: id,
+        oldValues: { venueId: event.venueId },
+        newValues: { venueId },
+        userId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      }
+    });
+
+    res.json(updatedEvent);
+  } catch (error) {
+    console.error('Error assigning venue to event:', error);
+    res.status(500).json({ error: 'Failed to assign venue to event' });
   }
 });
 

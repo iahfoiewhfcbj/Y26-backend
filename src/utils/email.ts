@@ -37,13 +37,13 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 
 export const emailTemplates = {
   userWelcome: (name: string, email: string, tempPassword: string) => ({
-    subject: 'Welcome to Yugam Finance Portal',
+    subject: 'Welcome to Yugam Facilities Portal',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          <h2 style="color: #1e40af; margin-bottom: 20px;">Welcome to Yugam Finance Portal</h2>
+          <h2 style="color: #1e40af; margin-bottom: 20px;">Welcome to Yugam Facilities Portal</h2>
           <p style="color: #374151; margin-bottom: 15px;">Dear ${name},</p>
-          <p style="color: #374151; margin-bottom: 15px;">Your account has been created successfully for the Yugam Finance Portal. Here are your login credentials:</p>
+                      <p style="color: #374151; margin-bottom: 15px;">Your account has been created successfully for the Yugam Facilities Portal. Here are your login credentials:</p>
           
           <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
             <p style="margin: 5px 0; color: #374151;"><strong>Email:</strong> ${email}</p>
@@ -148,7 +148,7 @@ export const emailTemplates = {
           
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
             Best regards,<br>
-            Yugam Finance Portal<br>
+            Yugam Facilities Portal<br>
             Kumaraguru College of Technology
           </p>
         </div>
@@ -241,7 +241,7 @@ export const emailTemplates = {
           
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
             Best regards,<br>
-            Yugam Finance Portal<br>
+            Yugam Facilities Portal<br>
             Kumaraguru College of Technology
           </p>
         </div>

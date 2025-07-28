@@ -14,14 +14,7 @@ router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FACILITIES_TEA
       where: { isActive: true },
       orderBy: { name: 'asc' },
       include: {
-        events: {
-          select: {
-            id: true,
-            title: true,
-            dateTime: true,
-            status: true
-          }
-        }
+        events: true
       }
     });
 
@@ -141,7 +134,7 @@ router.get('/events-for-assignment', authenticate, authorize([UserRole.ADMIN, Us
         },
         venue: true
       },
-      orderBy: { dateTime: 'asc' }
+      orderBy: ({ startDate: 'asc' } as any)
     });
 
     res.json(events);

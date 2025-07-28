@@ -37,7 +37,10 @@ model Event {
   coordinatorEmail String?
   description      String?
   venueId          String?
-  dateTime         DateTime?
+  startDate        DateTime?
+  startTime        String?
+  endDate          DateTime?
+  endTime          String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   creatorId        String
@@ -60,7 +63,10 @@ model Workshop {
   coordinatorEmail String?
   description      String?
   venueId          String?
-  dateTime         DateTime?
+  startDate        DateTime?
+  startTime        String?
+  endDate          DateTime?
+  endTime          String?
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
   creatorId        String
