@@ -30,6 +30,9 @@
     "winston": "^3.11.0",
     "xlsx": "^0.18.5"
   },
+  "prisma": {
+    "seed": "tsx src/seed.ts"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
