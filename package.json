@@ -5,12 +5,14 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "npm run db:generate && tsc",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx src/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "deploy": "npm install && npm run build"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
