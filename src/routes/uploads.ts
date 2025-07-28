@@ -1,9 +1,11 @@
 import express from 'express';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
 import { logger } from '../utils/logger';
+import { sendEmail, emailTemplates } from '../utils/email';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -64,15 +66,33 @@ router.post('/users', authenticate, authorize(['ADMIN']), upload.single('file'),
           continue;
         }
 
+        // Generate password in format: Iam<NAME>123!@#
+        const cleanName = userData.name.replace(/\s+/g, '');
+        const tempPassword = `Iam${cleanName}123!@#`;
+        const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
         // Create user
         await prisma.user.create({
           data: {
             name: userData.name,
             email: userData.email,
             role: userData.role,
-            password: 'tempPassword123!' // Will need to be changed on first login
+            password: hashedPassword
           }
         });
+
+        // Send welcome email
+        try {
+          const emailContent = emailTemplates.userWelcome(userData.name, userData.email, tempPassword);
+          await sendEmail({
+            to: userData.email,
+            subject: emailContent.subject,
+            html: emailContent.html
+          });
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          results.errors.push(`Row ${data.indexOf(row) + 2}: Welcome email failed to send`);
+        }
 
         results.success++;
       } catch (error) {
