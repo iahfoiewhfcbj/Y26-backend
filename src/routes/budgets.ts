@@ -35,7 +35,7 @@ router.get('/event/:eventId', authenticate, async (req: Request, res: Response) 
 });
 
 // Create or update budget
-router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
   body('budgets').isArray(),
   body('budgets.*.categoryId').isUUID(),
   body('budgets.*.amount').isFloat({ min: 0 }),
@@ -97,7 +97,7 @@ router.post('/event/:eventId', authenticate, authorize([UserRole.EVENT_TEAM_LEAD
     const updatedBudgets = await Promise.all(budgetPromises);
 
     // If submitted by team lead, send email to finance team
-    if (req.user!.role === UserRole.EVENT_TEAM_LEAD) {
+    if (req.user!.role === UserRole.EVENT_TEAM_LEAD || req.user!.role === UserRole.WORKSHOP_TEAM_LEAD) {
       try {
         const financeTeamUsers = await prisma.user.findMany({
           where: { role: UserRole.FINANCE_TEAM, isActive: true },

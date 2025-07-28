@@ -85,32 +85,58 @@ router.get('/event/:eventId/financial', authenticate, async (req: Request, res: 
 });
 
 // Get overall financial summary
-router.get('/summary', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req: Request, res: Response) => {
+router.get('/summary', authenticate, async (req: Request, res: Response) => {
   try {
-    const events = await prisma.event.findMany({
-      include: {
-        budgets: {
-          include: {
-            category: true
-          }
+    const { role, userId } = req.user!;
+
+    let events: any[] = [];
+    
+    // If user is coordinator, only get their assigned events
+    if (role === UserRole.EVENT_COORDINATOR || role === UserRole.WORKSHOP_COORDINATOR) {
+      events = await prisma.event.findMany({
+        where: {
+          coordinatorId: userId
         },
-        expenses: {
-          include: {
-            category: true
+        include: {
+          budgets: {
+            include: {
+              category: true
+            }
+          },
+          expenses: {
+            include: {
+              category: true
+            }
           }
         }
-      }
-    });
+      });
+    } else if (role === UserRole.ADMIN || role === UserRole.FINANCE_TEAM) {
+      // Admin and finance team can see all events
+      events = await prisma.event.findMany({
+        include: {
+          budgets: {
+            include: {
+              category: true
+            }
+          },
+          expenses: {
+            include: {
+              category: true
+            }
+          }
+        }
+      });
+    }
 
     const summary = events.map(event => ({
       id: event.id,
       name: event.title,
       type: (event as any).type,
       status: event.status,
-      totalBudget: event.budgets.reduce((sum, budget) => sum + budget.amount, 0),
-      totalApprovedBudget: event.budgets.reduce((sum, budget) => sum + (budget.approvedAmount || budget.amount), 0),
-      totalExpenses: event.expenses.reduce((sum, expense) => sum + expense.amount, 0),
-      totalSponsorAmount: event.budgets.reduce((sum, budget) => sum + budget.sponsorAmount, 0)
+      totalBudget: event.budgets.reduce((sum: number, budget: any) => sum + budget.amount, 0),
+      totalApprovedBudget: event.budgets.reduce((sum: number, budget: any) => sum + (budget.approvedAmount || budget.amount), 0),
+      totalExpenses: event.expenses.reduce((sum: number, expense: any) => sum + expense.amount, 0),
+      totalSponsorAmount: event.budgets.reduce((sum: number, budget: any) => sum + budget.sponsorAmount, 0)
     }));
 
     res.json(summary);

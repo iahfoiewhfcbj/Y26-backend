@@ -66,7 +66,7 @@ router.get('/workshop/:workshopId/summary', authenticate, async (req: Request, r
 });
 
 // Create workshop expense
-router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN, UserRole.WORKSHOP_TEAM_LEAD]), [
   body('workshopId').isUUID(),
   body('categoryId').isUUID(),
   body('itemName').notEmpty().trim(),
@@ -131,7 +131,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
 });
 
 // Update workshop expense
-router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN, UserRole.WORKSHOP_TEAM_LEAD]), [
   body('itemName').optional().notEmpty().trim(),
   body('quantity').optional().isFloat({ min: 0 }),
   body('unitPrice').optional().isFloat({ min: 0 }),
@@ -165,7 +165,7 @@ router.put('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.F
 });
 
 // Delete workshop expense
-router.delete('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN, UserRole.WORKSHOP_TEAM_LEAD]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

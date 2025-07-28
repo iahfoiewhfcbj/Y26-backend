@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 });
 
 // Create category
-router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), [
+router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD]), [
   body('name').notEmpty().trim(),
   body('description').optional().trim(),
   body('order').optional().isInt({ min: 0 }).toInt(),
@@ -73,7 +73,7 @@ router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]
 });
 
 // Update category
-router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), [
+router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD]), [
   body('name').optional().notEmpty().trim(),
   body('description').optional().trim(),
   body('order').optional().isInt({ min: 0 }).toInt(),
@@ -99,7 +99,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEA
 });
 
 // Delete category
-router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM]), async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

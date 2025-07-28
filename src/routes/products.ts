@@ -8,7 +8,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all products
-router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), async (req: Request, res: Response) => {
+router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM, UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD]), async (req: Request, res: Response) => {
   try {
     const products = await prisma.productCatalog.findMany({
       where: { isActive: true },

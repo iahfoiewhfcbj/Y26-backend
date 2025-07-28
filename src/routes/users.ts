@@ -9,8 +9,8 @@ import { sendEmail, emailTemplates } from '../utils/email';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get all users (Admin only)
-router.get('/', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
+// Get all users (Admin, Event Team Lead, Workshop Team Lead)
+router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.EVENT_TEAM_LEAD, UserRole.WORKSHOP_TEAM_LEAD]), async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -133,6 +133,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN]), [
 router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    console.log('Delete user request received for ID:', id);
 
     // Check if user exists
     const user = await prisma.user.findUnique({
@@ -140,18 +141,101 @@ router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Req
     });
 
     if (!user) {
+      console.log('User not found:', id);
       return res.status(404).json({ error: 'User not found' });
     }
 
+    console.log('Found user:', user.name, 'Current isActive:', user.isActive);
+
     // Soft delete by setting isActive to false
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: { isActive: false }
     });
 
+    console.log('User soft deleted successfully:', updatedUser.name, 'New isActive:', updatedUser.isActive);
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
+    console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Restore user (Admin only)
+router.patch('/:id/restore', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    console.log('Restore user request received for ID:', id);
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user) {
+      console.log('User not found:', id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('Found user:', user.name, 'Current isActive:', user.isActive);
+
+    // Restore user by setting isActive to true
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { isActive: true }
+    });
+
+    console.log('User restored successfully:', updatedUser.name, 'New isActive:', updatedUser.isActive);
+
+    res.json({ message: 'User restored successfully' });
+  } catch (error) {
+    console.error('Error restoring user:', error);
+    res.status(500).json({ error: 'Failed to restore user' });
+  }
+});
+
+// Change user password (Admin only)
+router.patch('/:id/password', authenticate, authorize([UserRole.ADMIN]), [
+  body('newPassword').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    console.log('Change password request received for user ID:', id);
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user) {
+      console.log('User not found:', id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('Found user:', user.name);
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update the password
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword }
+    });
+
+    console.log('Password changed successfully for user:', user.name);
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 
