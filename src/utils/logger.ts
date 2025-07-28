@@ -14,13 +14,18 @@ const logger = winston.createLogger({
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
+// Always add console transport for better debugging
+logger.add(new winston.transports.Console({
+  format: winston.format.combine(
+    winston.format.colorize(),
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(({ timestamp, level, message, service, userId, method, url }) => {
+      let log = `${timestamp} [${level}] ${message}`;
+      if (userId) log += ` (User: ${userId})`;
+      if (method && url) log += ` ${method} ${url}`;
+      return log;
+    })
+  )
+}));
 
 export { logger };
