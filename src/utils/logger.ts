@@ -21,7 +21,18 @@ logger.add(new winston.transports.Console({
     winston.format.colorize(),
     winston.format.timestamp({ format: 'DD-MM-YYYY HH:mm:ss' }),
     winston.format.printf(({ timestamp, level, message, service, userId, method, url, stack }) => {
-      let log = `${timestamp} [${level.toUpperCase()}] ${message}`;
+      // Enhanced formatting for startup messages
+      const messageStr = String(message);
+      if (messageStr.includes('🚀') || messageStr.includes('✅') || messageStr.includes('❌') || 
+          messageStr.includes('🎉') || messageStr.includes('📡') || messageStr.includes('🌍') || 
+          messageStr.includes('🔗') || messageStr.includes('📊') || messageStr.includes('🧪') || 
+          messageStr.includes('⏰') || messageStr.includes('📋') || messageStr.includes('✨')) {
+        // For startup messages, use a cleaner format
+        return `${messageStr}`;
+      }
+      
+      // For regular logs, use the standard format
+      let log = `${timestamp} [${level.toUpperCase()}] ${messageStr}`;
       if (userId) log += ` (User: ${userId})`;
       if (method && url) log += ` ${method} ${url}`;
       if (stack) log += `\n${stack}`;

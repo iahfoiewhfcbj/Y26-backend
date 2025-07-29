@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient, NotificationType, UserRole } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -145,7 +146,7 @@ export const createNotification = async (
       }
     });
   } catch (error) {
-    console.error('Failed to create notification:', error);
+    logger.error('Failed to create notification:', error);
   }
 };
 

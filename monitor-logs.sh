@@ -9,8 +9,8 @@ monitor_logs() {
     echo "Monitoring logs in real-time..."
     echo "----------------------------------------"
     
-    # Monitor combined logs
-    tail -f logs/combined.log | while read line; do
+    # Monitor combined logs (excluding notifications)
+    tail -f logs/combined.log | grep -v "notifications" | while read line; do
         # Parse JSON and format output
         timestamp=$(echo "$line" | jq -r '.timestamp // "N/A"' 2>/dev/null)
         level=$(echo "$line" | jq -r '.level // "N/A"' 2>/dev/null)

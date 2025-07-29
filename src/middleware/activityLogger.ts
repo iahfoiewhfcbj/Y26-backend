@@ -27,7 +27,7 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
           });
           
           if (user) {
-            userInfo = `${user.name} (${user.email})`;
+            userInfo = `${user.name} | ${user.email}`;
           } else {
             userInfo = `${decoded.email} (${decoded.userId})`;
           }
@@ -41,8 +41,16 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
     }
   }
 
-  // Log incoming request with enhanced user info
-  logger.info(`${req.method} ${req.path} (User: ${userInfo})`);
+  // Log incoming request with enhanced user info (skip notifications, logs, and health checks)
+  const shouldSkipConsoleLog = req.path.startsWith('/api/notifications') || 
+                              req.path.startsWith('/api/admin/logs') || 
+                              req.path.startsWith('/api/admin/system-logs') ||
+                              req.path === '/api/health' ||
+                              req.path === '/api/activity-status';
+  
+  if (!shouldSkipConsoleLog) {
+    logger.info(`${req.method} ${req.path} (User: ${userInfo})`);
+  }
 
   // Store original json method
   const originalJson = res.json;
@@ -61,8 +69,10 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
 
 const logActivity = async (req: Request, res: Response, responseBody: any) => {
   try {
-    // Skip logging for health checks and static files
-    if (req.path === '/api/health' || req.path.startsWith('/static/')) {
+    // Skip logging for health checks, static files, and activity status
+    if (req.path === '/api/health' || 
+        req.path.startsWith('/static/') || 
+        req.path === '/api/activity-status') {
       return;
     }
 
