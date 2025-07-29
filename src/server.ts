@@ -1,8 +1,9 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 import { PrismaClient } from '@prisma/client';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -34,6 +35,15 @@ const prisma = new PrismaClient();
 // Trust proxy for rate limiting behind load balancers
 app.set('trust proxy', 1);
 
+// HTTP request logging middleware - disabled for cleaner logs
+// app.use(morgan('combined', {
+//   stream: {
+//     write: (message: string) => {
+//       logger.info(message.trim());
+//     }
+//   }
+// }));
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
@@ -62,6 +72,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Activity logging middleware
 app.use(activityLogger);
+
+// Response time logging middleware - disabled for cleaner logs
+// app.use((req: Request, res: Response, next: NextFunction) => {
+//   const start = Date.now();
+//   
+//   res.on('finish', () => {
+//     const duration = Date.now() - start;
+//     logger.info(`Response completed: ${req.method} ${req.url}`, {
+//       method: req.method,
+//       url: req.url,
+//       statusCode: res.statusCode,
+//       duration: `${duration}ms`,
+//       userId: (req as any).user?.userId || 'anonymous'
+//     });
+//   });
+//   
+//   next();
+// });
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -97,20 +125,36 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+  logger.info(`🚀 Server started successfully`, {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
+  logger.info('🛑 SIGTERM received, shutting down gracefully');
+  try {
+    await prisma.$disconnect();
+    logger.info('✅ Database connection closed successfully');
+    process.exit(0);
+  } catch (error) {
+    logger.error('❌ Error during graceful shutdown:', { error: error instanceof Error ? error.message : 'Unknown error' });
+    process.exit(1);
+  }
 });
 
 process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
+  logger.info('🛑 SIGINT received, shutting down gracefully');
+  try {
+    await prisma.$disconnect();
+    logger.info('✅ Database connection closed successfully');
+    process.exit(0);
+  } catch (error) {
+    logger.error('❌ Error during graceful shutdown:', { error: error instanceof Error ? error.message : 'Unknown error' });
+    process.exit(1);
+  }
 });
 
 export default app;

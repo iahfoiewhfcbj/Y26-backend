@@ -164,4 +164,44 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// Debug endpoint to show authentication status
+router.get('/debug', async (req: Request, res: Response) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    let authStatus: {
+      hasToken: boolean;
+      tokenValid: boolean;
+      userInfo: any;
+      reqUser: any;
+    } = {
+      hasToken: !!token,
+      tokenValid: false,
+      userInfo: null,
+      reqUser: req.user || null
+    };
+
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+        authStatus.tokenValid = true;
+        
+        // Fetch user info from database
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { id: true, email: true, name: true, role: true, isActive: true }
+        });
+        
+        authStatus.userInfo = user;
+      } catch (error) {
+        authStatus.tokenValid = false;
+      }
+    }
+
+    res.json(authStatus);
+  } catch (error) {
+    res.status(500).json({ error: 'Debug endpoint failed' });
+  }
+});
+
 export default router;
