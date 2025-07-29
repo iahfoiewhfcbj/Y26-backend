@@ -225,9 +225,7 @@ router.post('/venues', authenticate, authorize(['ADMIN']), upload.single('file')
           data: {
             name: venueData.name,
             location: venueData.location,
-            capacity: venueData.capacity ? parseInt(venueData.capacity) : null,
-            description: venueData.description || null,
-            facilities: venueData.facilities || null
+            capacity: venueData.capacity ? parseInt(venueData.capacity) : null
           }
         });
 

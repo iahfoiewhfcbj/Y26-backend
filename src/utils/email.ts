@@ -311,4 +311,65 @@ export const emailTemplates = {
       </div>
     `,
   }),
+
+  venueAssigned: (eventTitle: string, coordinatorName: string, venueName: string) => ({
+    subject: `Venue Assigned: ${eventTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #059669; margin-bottom: 20px;">Venue Assigned</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear ${coordinatorName},</p>
+          <p style="color: #374151; margin-bottom: 15px;">A venue has been assigned to your event/workshop:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Event/Workshop:</strong> ${eventTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Assigned Venue:</strong> ${venueName}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view the venue details and proceed with your event planning.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/login" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Event</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Facilities Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
+  venueChanged: (eventTitle: string, coordinatorName: string, previousVenue: string, newVenue: string) => ({
+    subject: `Venue Changed: ${eventTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #d97706; margin-bottom: 20px;">Venue Changed</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear ${coordinatorName},</p>
+          <p style="color: #374151; margin-bottom: 15px;">The venue for your event/workshop has been changed:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Event/Workshop:</strong> ${eventTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Previous Venue:</strong> ${previousVenue}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>New Venue:</strong> ${newVenue}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view the updated venue details and adjust your event planning accordingly.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/login" style="background-color: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Event</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Facilities Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
 };
