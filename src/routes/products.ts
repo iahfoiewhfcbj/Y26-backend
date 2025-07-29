@@ -27,7 +27,6 @@ router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, 
 // Create product
 router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), [
   body('name').notEmpty().trim(),
-  body('description').optional().trim(),
   body('unitPrice').optional().isFloat({ min: 0 }),
   body('unit').optional().trim(),
   body('categoryId').optional().isUUID(),
@@ -54,7 +53,6 @@ router.post('/', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM,
 // Update product
 router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.FINANCE_TEAM, UserRole.FACILITIES_TEAM]), [
   body('name').optional().notEmpty().trim(),
-  body('description').optional().trim(),
   body('unitPrice').optional().isFloat({ min: 0 }),
   body('unit').optional().trim(),
   body('categoryId').optional().isUUID(),

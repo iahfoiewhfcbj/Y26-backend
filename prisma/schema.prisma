@@ -26,6 +26,7 @@ model User {
   workshopExpenses        WorkshopExpense[]
   coordinatedWorkshops    Workshop[]               @relation("WorkshopCoordinator")
   createdWorkshops        Workshop[]               @relation("WorkshopCreator")
+  quotations              Quotation[]              @relation("QuotationCreator")
 
   @@map("users")
 }
@@ -52,6 +53,7 @@ model Event {
   creator          User             @relation("EventCreator", fields: [creatorId], references: [id])
   venue            Venue?           @relation(fields: [venueId], references: [id])
   expenses         Expense[]
+  quotations       Quotation[]      @relation("EventQuotations")
 
   @@map("events")
 }
@@ -77,6 +79,7 @@ model Workshop {
   coordinator      User?                    @relation("WorkshopCoordinator", fields: [coordinatorId], references: [id])
   creator          User                     @relation("WorkshopCreator", fields: [creatorId], references: [id])
   venue            Venue?                   @relation(fields: [venueId], references: [id])
+  quotations       Quotation[]              @relation("WorkshopQuotations")
 
   @@map("workshops")
 }
@@ -108,6 +111,7 @@ model BudgetCategory {
   products         ProductCatalog[]
   workshopBudgets  WorkshopBudget[]
   workshopExpenses WorkshopExpense[]
+  quotationItems   QuotationItem[]
 
   @@map("budget_categories")
 }
@@ -149,7 +153,6 @@ model WorkshopBudget {
 model ProductCatalog {
   id               String            @id @default(uuid())
   name             String            @unique
-  description      String?
   unitPrice        Float?
   unit             String?
   categoryId       String?
@@ -265,6 +268,41 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+model Quotation {
+  id          String           @id @default(uuid())
+  title       String
+  description String?
+  totalAmount Float            @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  eventId     String?
+  workshopId  String?
+  createdById String
+  createdBy   User             @relation("QuotationCreator", fields: [createdById], references: [id])
+  event       Event?           @relation("EventQuotations", fields: [eventId], references: [id], onDelete: Cascade)
+  workshop    Workshop?        @relation("WorkshopQuotations", fields: [workshopId], references: [id], onDelete: Cascade)
+  items       QuotationItem[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String     @id @default(uuid())
+  productName  String
+  description  String?
+  quantity     Float
+  unitPrice    Float
+  totalPrice   Float
+  categoryId   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  quotationId  String
+  quotation    Quotation  @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  category     BudgetCategory? @relation(fields: [categoryId], references: [id])
+
+  @@map("quotation_items")
+}
+
 enum UserRole {
   ADMIN
   EVENT_TEAM_LEAD
@@ -300,3 +338,5 @@ enum NotificationType {
   WARNING
   ERROR
 }
+
+

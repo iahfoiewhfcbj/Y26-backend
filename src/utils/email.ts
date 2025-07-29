@@ -312,6 +312,38 @@ export const emailTemplates = {
     `,
   }),
 
+  bulkExpenseAdded: (eventTitle: string, itemCount: number, totalAmount: number, addedBy: string) => ({
+    subject: `Multiple Expenses Added: ${eventTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #7c3aed; margin-bottom: 20px;">Multiple Expenses Added</h2>
+          <p style="color: #374151; margin-bottom: 15px;">Dear Event Coordinator,</p>
+          <p style="color: #374151; margin-bottom: 15px;">Multiple expenses have been added to your event/workshop:</p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0; color: #374151;"><strong>Event/Workshop:</strong> ${eventTitle}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Number of Items:</strong> ${itemCount}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Total Amount:</strong> ₹${totalAmount.toLocaleString()}</p>
+            <p style="margin: 5px 0; color: #374151;"><strong>Added by:</strong> ${addedBy}</p>
+          </div>
+          
+          <p style="color: #374151; margin-bottom: 15px;">Please login to the portal to view the updated budget status and expense details.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL}/events" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Event</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            Yugam Finance Team<br>
+            Kumaraguru College of Technology
+          </p>
+        </div>
+      </div>
+    `,
+  }),
+
   venueAssigned: (eventTitle: string, coordinatorName: string, venueName: string) => ({
     subject: `Venue Assigned: ${eventTitle}`,
     html: `

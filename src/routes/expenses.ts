@@ -67,7 +67,8 @@ router.get('/event/:eventId/summary', authenticate, async (req: Request, res: Re
 
 // Create expense
 router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
-  body('eventId').isUUID(),
+  body('eventId').optional().isUUID(),
+  body('workshopId').optional().isUUID(),
   body('categoryId').isUUID(),
   body('itemName').notEmpty().trim(),
   body('quantity').isFloat({ min: 0 }),
@@ -106,7 +107,7 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
     });
 
     // Send email to event coordinator
-    if (expense.event.coordinator) {
+    if (expense.event?.coordinator) {
       try {
         const emailContent = emailTemplates.expenseAdded(
           expense.event.title,
@@ -126,7 +127,85 @@ router.post('/', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FIN
 
     res.status(201).json(expense);
   } catch (error) {
+    console.error('Error creating expense:', error);
     res.status(500).json({ error: 'Failed to create expense' });
+  }
+});
+
+// Create bulk expenses (for multi-item expenses)
+router.post('/bulk', authenticate, authorize([UserRole.FACILITIES_TEAM, UserRole.FINANCE_TEAM, UserRole.ADMIN]), [
+  body('expenses').isArray({ min: 1 }),
+  body('expenses.*.eventId').optional().isUUID(),
+  body('expenses.*.workshopId').optional().isUUID(),
+  body('expenses.*.categoryId').isUUID(),
+  body('expenses.*.itemName').notEmpty().trim(),
+  body('expenses.*.quantity').isFloat({ min: 0 }),
+  body('expenses.*.unitPrice').isFloat({ min: 0 }),
+  body('expenses.*.amount').isFloat({ min: 0 }),
+  body('expenses.*.remarks').optional().trim(),
+  body('expenses.*.productId').optional().isUUID(),
+  body('sendEmail').optional().isBoolean(),
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const { expenses, sendEmail: shouldSendEmail = true } = req.body;
+    const createdExpenses = [];
+
+    for (const expenseData of expenses) {
+      const expense = await prisma.expense.create({
+        data: {
+          ...expenseData,
+          addedById: req.user!.userId
+        },
+        include: {
+          category: true,
+          addedBy: {
+            select: { id: true, name: true, email: true }
+          },
+          product: true,
+          event: {
+            include: {
+              coordinator: {
+                select: { id: true, name: true, email: true }
+              }
+            }
+          }
+        }
+      });
+
+      createdExpenses.push(expense);
+    }
+
+    // Send single email notification for bulk expenses
+    if (shouldSendEmail && createdExpenses.length > 0) {
+      const firstExpense = createdExpenses[0];
+      if (firstExpense.event?.coordinator) {
+        try {
+          const emailContent = emailTemplates.bulkExpenseAdded(
+            firstExpense.event.title,
+            createdExpenses.length,
+            createdExpenses.reduce((sum, exp) => sum + exp.amount, 0),
+            firstExpense.addedBy.name
+          );
+          await sendEmail({
+            to: firstExpense.event.coordinator.email,
+            subject: emailContent.subject,
+            html: emailContent.html
+          });
+        } catch (emailError) {
+          console.error('Failed to send bulk expense email:', emailError);
+        }
+      }
+    }
+
+    res.status(201).json(createdExpenses);
+  } catch (error) {
+    console.error('Error creating bulk expenses:', error);
+    res.status(500).json({ error: 'Failed to create bulk expenses' });
   }
 });
 
