@@ -18,7 +18,6 @@ router.get('/', authenticate, authorize([UserRole.ADMIN, UserRole.EVENT_TEAM_LEA
         email: true,
         name: true,
         role: true,
-        isActive: true,
         createdAt: true,
         updatedAt: true
       },
@@ -71,7 +70,6 @@ router.post('/', authenticate, authorize([UserRole.ADMIN]), [
         email: true,
         name: true,
         role: true,
-        isActive: true,
         createdAt: true
       }
     });
@@ -118,7 +116,6 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN]), [
         email: true,
         name: true,
         role: true,
-        isActive: true,
         updatedAt: true
       }
     });
@@ -145,15 +142,76 @@ router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Req
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('Found user:', user.name, 'Current isActive:', user.isActive);
+    console.log('Found user:', user.name);
 
-    // Soft delete by setting isActive to false
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: { isActive: false }
+    // Use transaction to handle all related deletions
+    await prisma.$transaction(async (tx) => {
+      // Delete related records first
+      
+      // Delete activity logs
+      await tx.activityLog.deleteMany({
+        where: { userId: id }
+      });
+
+      // Delete notifications
+      await tx.notification.deleteMany({
+        where: { userId: id }
+      });
+
+      // Delete budget approvals
+      await tx.budgetApproval.deleteMany({
+        where: { reviewerId: id }
+      });
+
+      // Delete workshop budget approvals
+      await tx.workshopBudgetApproval.deleteMany({
+        where: { reviewerId: id }
+      });
+
+      // Delete expenses
+      await tx.expense.deleteMany({
+        where: { addedById: id }
+      });
+
+      // Delete workshop expenses
+      await tx.workshopExpense.deleteMany({
+        where: { addedById: id }
+      });
+
+      // Delete quotations
+      await tx.quotation.deleteMany({
+        where: { createdById: id }
+      });
+
+      // Delete events where user is the creator (since creatorId is required)
+      await tx.event.deleteMany({
+        where: { creatorId: id }
+      });
+
+      // Update events to remove coordinator references (coordinatorId is optional)
+      await tx.event.updateMany({
+        where: { coordinatorId: id },
+        data: { coordinatorId: null }
+      });
+
+      // Delete workshops where user is the creator (since creatorId is required)
+      await tx.workshop.deleteMany({
+        where: { creatorId: id }
+      });
+
+      // Update workshops to remove coordinator references (coordinatorId is optional)
+      await tx.workshop.updateMany({
+        where: { coordinatorId: id },
+        data: { coordinatorId: null }
+      });
+
+      // Finally delete the user
+      await tx.user.delete({
+        where: { id }
+      });
     });
 
-    console.log('User soft deleted successfully:', updatedUser.name, 'New isActive:', updatedUser.isActive);
+    console.log('User and all related data permanently deleted from database:', user.name);
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -162,38 +220,7 @@ router.delete('/:id', authenticate, authorize([UserRole.ADMIN]), async (req: Req
   }
 });
 
-// Restore user (Admin only)
-router.patch('/:id/restore', authenticate, authorize([UserRole.ADMIN]), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    console.log('Restore user request received for ID:', id);
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id }
-    });
-
-    if (!user) {
-      console.log('User not found:', id);
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    console.log('Found user:', user.name, 'Current isActive:', user.isActive);
-
-    // Restore user by setting isActive to true
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: { isActive: true }
-    });
-
-    console.log('User restored successfully:', updatedUser.name, 'New isActive:', updatedUser.isActive);
-
-    res.json({ message: 'User restored successfully' });
-  } catch (error) {
-    console.error('Error restoring user:', error);
-    res.status(500).json({ error: 'Failed to restore user' });
-  }
-});
 
 // Change user password (Admin only)
 router.patch('/:id/password', authenticate, authorize([UserRole.ADMIN]), [
