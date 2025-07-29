@@ -341,7 +341,6 @@ router.post('/products', authenticate, authorize(['ADMIN']), upload.single('file
         await prisma.productCatalog.create({
           data: {
             name: productData.name,
-            description: productData.description || null,
             unitPrice: productData.unitPrice ? parseFloat(productData.unitPrice) : null,
             unit: productData.unit || null,
             categoryId: categoryId
