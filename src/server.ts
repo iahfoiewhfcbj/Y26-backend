@@ -26,6 +26,7 @@ import notificationRoutes from './routes/notifications';
 import venueRoutes from './routes/venues';
 import uploadRoutes from './routes/uploads';
 import quotationRoutes from './routes/quotations';
+import pushNotificationRoutes from './routes/pushNotifications';
 
 dotenv.config();
 
@@ -243,6 +244,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/venues', venueRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/quotations', quotationRoutes);
+app.use('/api/push-notifications', pushNotificationRoutes);
 
 // Enhanced health check with activity info
 app.get('/api/health', (req, res) => {
